@@ -6,8 +6,11 @@
   <input
     id="search-input"
     type="search"
+    inputmode="search"
+    enterkeyhint="search"
     placeholder="Search notes… (try: visual, wwdc, translation)"
     autocomplete="off"
+    spellcheck="false"
     autofocus
   />
   <div id="search-meta" class="label" style="margin:8px 0 16px;min-height:14px"></div>
@@ -102,16 +105,17 @@
   }
 
   function search(query) {
-    if (!fuse) return;
+    if (!fuse) return null;
     const q = query.trim();
     if (!q) {
       results.innerHTML = '';
       empty.style.display = 'none';
       meta.textContent = indexSize + ' notes indexed — start typing.';
-      return;
+      return null;
     }
     const matches = fuse.search(q, { limit: 50 });
     render(matches, q);
+    return matches;
   }
 
   async function init() {
@@ -126,13 +130,32 @@
           { name: 'labels', weight: 0.3 },
           { name: 'excerpt', weight: 0.2 },
         ],
-        threshold: 0.4,
+        // Threshold tuned for mixed-script search. Fuse's Bitap algorithm
+        // measures distance per-character, so 0.3 is too tight for CJK
+        // (one substitution moves you across syllable boundaries). 0.45
+        // still rejects unrelated strings but matches e.g. "wwdc" → "WWDC26".
+        threshold: 0.45,
         ignoreLocation: true,
         includeMatches: false,
         minMatchCharLength: 2,
+        distance: 1000,
       });
       meta.textContent = indexSize + ' notes indexed — start typing.';
       input.addEventListener('input', (e) => search(e.target.value));
+      // Enter on the search input → open the first result. Plain <input>
+      // doesn't submit a form here, so we wire the key explicitly.
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const q = input.value.trim();
+          if (!q) return;
+          const matches = fuse ? fuse.search(q, { limit: 50 }) : [];
+          if (matches.length > 0) {
+            window.location.href = base + '/posts/' + matches[0].item.id + '/';
+          }
+        }
+      });
+      // Run an initial query if ?q= is present (deep-linkable searches).
       const params = new URLSearchParams(window.location.search);
       const initial = params.get('q');
       if (initial) {
