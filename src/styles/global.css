@@ -1,5 +1,10 @@
 /* Nothing v3 — personal notes blog */
-@import url('https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+/* Doto:  Latin-only display (used for English-only hero h1).
+   Space Grotesk / Space Mono:  Latin-only (fallback to Pretendard for CJK).
+   Pretendard:  Unified Latin + Korean + Japanese, designed to pair with
+                Apple SF Pro / SD Gothic Neo. Used for everything that
+                can mix scripts — body, h2/h3, labels, code. */
+@import url('https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=JetBrains+Mono:wght@400;500;700&family=Pretendard:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
   --bg: #000000;
@@ -9,9 +14,12 @@
   --muted: #888888;
   --accent: #D71921;
 
-  --font-display: 'Doto', monospace;
-  --font-body: 'Space Grotesk', system-ui, sans-serif;
-  --font-mono: 'Space Mono', monospace;
+  /* Doto is Latin-only — anything that can carry CJK falls back to Pretendard. */
+  --font-display: 'Doto', 'Pretendard', system-ui, sans-serif;
+  --font-heading: 'Pretendard', 'Space Grotesk', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  --font-body: 'Pretendard', 'Space Grotesk', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  --font-label: 'Space Mono', 'Pretendard', ui-monospace, monospace;
+  --font-mono: 'JetBrains Mono', 'Space Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,7 +37,7 @@ a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--bo
 a:hover { border-bottom-color: var(--accent); color: var(--accent); }
 
 .label {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -37,7 +45,7 @@ a:hover { border-bottom-color: var(--accent); color: var(--accent); }
 }
 
 .unit {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -75,11 +83,13 @@ a:hover { border-bottom-color: var(--accent); color: var(--accent); }
 .post-item .title { font-weight: 500; }
 .post-item .meta { display: flex; gap: 16px; align-items: baseline; }
 
-/* Post body */
+/* Post body — h1/h2/h3 can mix scripts, so use Pretendard (heading) instead of Doto. */
 .prose h1, .prose h2, .prose h3 {
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
+  font-weight: 800;
   margin: 32px 0 12px;
-  line-height: 1.15;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 .prose h1 { font-size: 36px; }
 .prose h2 { font-size: 24px; }
@@ -141,7 +151,7 @@ nav.top .brand {
 .back {
   display: inline-block;
   margin-bottom: 24px;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
