@@ -1,12 +1,15 @@
 name: Build & Deploy
 
 on:
+  # Rebuild on any push to main (covers the script + workflow edits).
+  push:
+    branches: [main]
   # Rebuild whenever an issue is opened, labeled, unlabeled, edited, closed, or reopened.
   issues:
     types: [opened, edited, deleted, closed, reopened, labeled, unlabeled, transferred]
   # Manual trigger from the Actions tab.
   workflow_dispatch:
-  # Daily safety net in case of missed webhooks.
+  # Safety net in case of missed webhooks.
   schedule:
     - cron: '0 */6 * * *'
 
