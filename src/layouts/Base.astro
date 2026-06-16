@@ -107,12 +107,11 @@ const baseAttr = base || '/';
       .cmdk .cmdk-hit .unit, .cmdk .cmdk-hit .label { white-space: nowrap; }
     </style>
 
-    <script is:inline src="https://cdn.jsdelivr.net/npm/fuse.js@7.4.2/dist/fuse.min.js"></script>
     <script>
-      (() => {
-      const Fuse = window.Fuse;
-      if (!Fuse) { console.error('Fuse failed to load from CDN'); return; }
+      import Fuse from 'fuse.js';
 
+      (() => {
+      const FuseCtor = Fuse;
       const base = (document.querySelector('meta[name="astro-base"]')?.getAttribute('content') || '/notes').replace(/\/$/, '');
       const dlg = document.getElementById('cmdk');
       const input = document.getElementById('cmdk-input');
@@ -212,7 +211,7 @@ const baseAttr = base || '/';
           try {
             const res = await fetch(base + '/search-index.json', { cache: 'no-store' });
             const data = await res.json();
-            fuse = new Fuse(data, {
+            fuse = new FuseCtor(data, {
               keys: [
                 { name: 'title', weight: 0.5 },
                 { name: 'labels', weight: 0.3 },

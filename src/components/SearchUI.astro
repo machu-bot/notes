@@ -1,6 +1,8 @@
 ---
-// Search UI is a client-side island. Logic below runs after the Fuse CDN
-// script (added separately in the layout) finishes loading.
+// Search UI is a client-side island. The script below is processed by
+// Astro's Vite pipeline: the bare `import Fuse from 'fuse.js'` is hoisted
+// into an external chunk, and the body becomes a plain <script> that
+// consumes it. The IIFE wrapper keeps the bundle scoped.
 ---
 <div class="search">
   <input
@@ -40,12 +42,10 @@
   .hit-excerpt mark { background: transparent; color: var(--text); }
 </style>
 
-<script is:inline src="https://cdn.jsdelivr.net/npm/fuse.js@7.4.2/dist/fuse.min.js"></script>
 <script>
-  (() => {
-  const Fuse = window.Fuse;
-  if (!Fuse) { console.error('Fuse failed to load from CDN'); return; }
+  import Fuse from 'fuse.js';
 
+  (() => {
   const input = document.getElementById('search-input');
   const meta = document.getElementById('search-meta');
   const results = document.getElementById('search-results');
@@ -83,7 +83,7 @@
     if (matches.length === 0) {
       results.innerHTML = '';
       empty.style.display = 'block';
-      meta.textContent = '';
+      meta.textContent = 'No matches for "' + query + '".';
       return;
     }
     empty.style.display = 'none';
@@ -130,10 +130,6 @@
           { name: 'labels', weight: 0.3 },
           { name: 'excerpt', weight: 0.2 },
         ],
-        // Threshold tuned for mixed-script search. Fuse's Bitap algorithm
-        // measures distance per-character, so 0.3 is too tight for CJK
-        // (one substitution moves you across syllable boundaries). 0.45
-        // still rejects unrelated strings but matches e.g. "wwdc" → "WWDC26".
         threshold: 0.45,
         ignoreLocation: true,
         includeMatches: false,
@@ -142,8 +138,6 @@
       });
       meta.textContent = indexSize + ' notes indexed — start typing.';
       input.addEventListener('input', (e) => search(e.target.value));
-      // Enter on the search input → open the first result. Plain <input>
-      // doesn't submit a form here, so we wire the key explicitly.
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -155,7 +149,6 @@
           }
         }
       });
-      // Run an initial query if ?q= is present (deep-linkable searches).
       const params = new URLSearchParams(window.location.search);
       const initial = params.get('q');
       if (initial) {
@@ -163,7 +156,7 @@
         search(initial);
       }
     } catch (err) {
-      meta.textContent = 'Failed to load search index.';
+      meta.textContent = 'Failed to load search index: ' + err.message;
       console.error('Search init failed:', err);
     }
   }
