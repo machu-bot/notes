@@ -1,0 +1,150 @@
+---
+// Search UI is a client-side island. Logic below runs after the Fuse CDN
+// script (added separately in the layout) finishes loading.
+---
+<div class="search">
+  <input
+    id="search-input"
+    type="search"
+    placeholder="Search notes… (try: visual, wwdc, translation)"
+    autocomplete="off"
+    autofocus
+  />
+  <div id="search-meta" class="label" style="margin:8px 0 16px;min-height:14px"></div>
+  <div id="search-results" class="post-list"></div>
+  <p id="search-empty" class="label" style="display:none">No matches.</p>
+</div>
+
+<style>
+  .search input[type="search"] {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    outline: none;
+    transition: border-color 120ms;
+  }
+  .search input[type="search"]:focus { border-color: var(--accent); }
+  .search input[type="search"]::placeholder { color: var(--muted); }
+
+  .hit-title { color: var(--text); }
+  .hit-title mark { background: transparent; color: var(--accent); font-weight: 600; }
+  .hit-excerpt { color: var(--muted); font-size: 13px; margin-top:4px; line-height: 1.5; }
+  .hit-excerpt mark { background: transparent; color: var(--text); }
+</style>
+
+<script is:inline src="https://cdn.jsdelivr.net/npm/fuse.js@7.4.2/dist/fuse.min.js"></script>
+<script>
+  (() => {
+  const Fuse = window.Fuse;
+  if (!Fuse) { console.error('Fuse failed to load from CDN'); return; }
+
+  const input = document.getElementById('search-input');
+  const meta = document.getElementById('search-meta');
+  const results = document.getElementById('search-results');
+  const empty = document.getElementById('search-empty');
+  const base = (document.querySelector('meta[name="astro-base"]')?.getAttribute('content') || '/notes').replace(/\/$/, '');
+
+  let fuse = null;
+  let indexSize = 0;
+
+  function escapeHtml(s) {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function highlight(text, query) {
+    if (!query) return escapeHtml(text);
+    const tokens = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((t) => t.length > 0)
+      .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    if (tokens.length === 0) return escapeHtml(text);
+    const re = new RegExp('(' + tokens.join('|') + ')', 'gi');
+    return escapeHtml(text).replace(re, '<mark>$1</mark>');
+  }
+
+  function formatDate(iso) {
+    return iso ? iso.slice(0, 10) : '';
+  }
+
+  function render(matches, query) {
+    if (matches.length === 0) {
+      results.innerHTML = '';
+      empty.style.display = 'block';
+      meta.textContent = '';
+      return;
+    }
+    empty.style.display = 'none';
+    meta.textContent = matches.length + ' result' + (matches.length === 1 ? '' : 's');
+    results.innerHTML = matches
+      .map(({ item }) => `
+        <article class="post-item">
+          <div style="flex:1;min-width:0">
+            <a href="${base}/posts/${item.id}/" class="title hit-title">${highlight(item.title, query)}</a>
+            <div class="hit-excerpt">${highlight(item.excerpt.slice(0, 240), query)}…</div>
+          </div>
+          <div class="meta">
+            <span class="unit">#${item.issue}</span>
+            <time class="label" datetime="${item.createdAt}">${formatDate(item.createdAt)}</time>
+          </div>
+        </article>
+      `)
+      .join('');
+  }
+
+  function search(query) {
+    if (!fuse) return;
+    const q = query.trim();
+    if (!q) {
+      results.innerHTML = '';
+      empty.style.display = 'none';
+      meta.textContent = indexSize + ' notes indexed — start typing.';
+      return;
+    }
+    const matches = fuse.search(q, { limit: 50 });
+    render(matches, q);
+  }
+
+  async function init() {
+    try {
+      const res = await fetch(base + '/search-index.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      indexSize = data.length;
+      fuse = new Fuse(data, {
+        keys: [
+          { name: 'title', weight: 0.5 },
+          { name: 'labels', weight: 0.3 },
+          { name: 'excerpt', weight: 0.2 },
+        ],
+        threshold: 0.4,
+        ignoreLocation: true,
+        includeMatches: false,
+        minMatchCharLength: 2,
+      });
+      meta.textContent = indexSize + ' notes indexed — start typing.';
+      input.addEventListener('input', (e) => search(e.target.value));
+      const params = new URLSearchParams(window.location.search);
+      const initial = params.get('q');
+      if (initial) {
+        input.value = initial;
+        search(initial);
+      }
+    } catch (err) {
+      meta.textContent = 'Failed to load search index.';
+      console.error('Search init failed:', err);
+    }
+  }
+
+  init();
+  })();
+</script>

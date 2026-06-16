@@ -48,6 +48,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build search index
+        # Reads dist after Astro build, emits dist/search-index.json. Kept
+        # as a separate step so the index can be regenerated independently
+        # (e.g. after content-only edits) without re-running Astro.
+        run: node scripts/build-search-index.mjs
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

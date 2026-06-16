@@ -1,0 +1,12 @@
+---
+import Base from '../layouts/Base.astro';
+import SearchUI from '../components/SearchUI.astro';
+---
+<Base title="search">
+  <a class="back" href={import.meta.env.BASE_URL.replace(/\/$/, '') + '/'}>← back</a>
+  <header style="margin-bottom:24px">
+    <h1>search<span style="color:var(--accent)">.</span></h1>
+    <p class="label" style="margin-top:8px">Fuzzy match across title, labels, and body.</p>
+  </header>
+  <SearchUI />
+</Base>

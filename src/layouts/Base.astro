@@ -8,6 +8,8 @@ interface Props {
 const { title, description = 'Personal learning notes' } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const home = base ? `${base}/` : '/';
+const search = base ? `${base}/search/` : '/search/';
+const baseAttr = base || '/';
 ---
 <!doctype html>
 <html lang="en">
@@ -17,14 +19,220 @@ const home = base ? `${base}/` : '/';
     <title>{title} — notes</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#000000" />
+    <meta name="astro-base" content={baseAttr} />
   </head>
   <body>
     <div class="container">
       <nav class="top">
         <a href={home} class="brand">notes<span style="color:var(--accent)">.</span></a>
-        <span class="label">learning log</span>
+        <a class="search-link" href={search} aria-label="Search">
+          <span class="label">search</span>
+          <kbd>⌘K</kbd>
+        </a>
       </nav>
       <slot />
     </div>
+
+    <!-- ⌘K modal. Hidden by default, toggled by the script below. -->
+    <dialog id="cmdk" class="cmdk">
+      <form method="dialog" id="cmdk-form">
+        <input
+          id="cmdk-input"
+          type="search"
+          placeholder="Search notes…"
+          autocomplete="off"
+        />
+        <div id="cmdk-meta" class="label"></div>
+        <ul id="cmdk-results" class="post-list"></ul>
+        <p id="cmdk-empty" class="label" style="display:none">No matches.</p>
+      </form>
+    </dialog>
+
+    <style>
+      .search-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 0;
+        color: var(--muted);
+      }
+      .search-link:hover { color: var(--text); }
+      .search-link kbd {
+        font-family: var(--font-label);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 2px 6px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--muted);
+        background: var(--bg);
+      }
+
+      .cmdk {
+        width: min(640px, 92vw);
+        margin: 12vh auto;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      }
+      .cmdk::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+      .cmdk form { padding: 16px; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+      .cmdk input[type="search"] {
+        width: 100%;
+        background: transparent;
+        color: var(--text);
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        padding: 8px 0;
+        font-family: var(--font-body);
+        font-size: 16px;
+        outline: none;
+      }
+      .cmdk input[type="search"]:focus { border-bottom-color: var(--accent); }
+      .cmdk input[type="search"]::placeholder { color: var(--muted); }
+      .cmdk ul { max-height: 50vh; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+      .cmdk .cmdk-hit {
+        display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+        padding: 12px 0; border-top: 1px solid var(--border); cursor: pointer;
+        font-family: var(--font-body);
+      }
+      .cmdk .cmdk-hit:last-child { border-bottom: 0; }
+      .cmdk .cmdk-hit:hover, .cmdk .cmdk-hit.active { color: var(--accent); }
+      .cmdk .cmdk-hit mark { background: transparent; color: var(--accent); font-weight: 600; }
+      .cmdk .cmdk-hit .unit, .cmdk .cmdk-hit .label { white-space: nowrap; }
+    </style>
+
+    <script is:inline src="https://cdn.jsdelivr.net/npm/fuse.js@7.4.2/dist/fuse.min.js"></script>
+    <script>
+      (() => {
+      const Fuse = window.Fuse;
+      if (!Fuse) { console.error('Fuse failed to load from CDN'); return; }
+
+      const base = (document.querySelector('meta[name="astro-base"]')?.getAttribute('content') || '/notes').replace(/\/$/, '');
+      const dlg = document.getElementById('cmdk');
+      const input = document.getElementById('cmdk-input');
+      const meta = document.getElementById('cmdk-meta');
+      const list = document.getElementById('cmdk-results');
+      const empty = document.getElementById('cmdk-empty');
+
+      let fuse = null;
+      let active = 0;
+      let current = [];
+
+      function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+
+      function highlight(text, query) {
+        if (!query) return escapeHtml(text);
+        const tokens = query
+          .toLowerCase().split(/\s+/).filter((t) => t.length > 0)
+          .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        if (tokens.length === 0) return escapeHtml(text);
+        return escapeHtml(text).replace(new RegExp('(' + tokens.join('|') + ')', 'gi'), '<mark>$1</mark>');
+      }
+
+      function render(query, matches) {
+        if (matches.length === 0) {
+          list.innerHTML = '';
+          empty.style.display = 'block';
+          meta.textContent = '';
+          return;
+        }
+        empty.style.display = 'none';
+        current = matches.map((m) => ({ id: m.item.id, title: m.item.title, issue: m.item.issue, createdAt: m.item.createdAt }));
+        active = 0;
+        list.innerHTML = matches.map((m, i) => `
+          <li class="cmdk-hit${i === 0 ? ' active' : ''}" data-idx="${i}">
+            <span>${highlight(m.item.title, query)}</span>
+            <span class="unit">#${m.item.issue}</span>
+          </li>
+        `).join('');
+        meta.textContent = matches.length + ' result' + (matches.length === 1 ? '' : 's');
+        list.querySelectorAll('.cmdk-hit').forEach((el) => {
+          el.addEventListener('click', () => {
+            open(Number(el.dataset.idx));
+          });
+        });
+      }
+
+      function open(idx) {
+        const hit = current[idx];
+        if (!hit) return;
+        window.location.href = base + '/posts/' + hit.id + '/';
+      }
+
+      function move(delta) {
+        if (current.length === 0) return;
+        active = (active + delta + current.length) % current.length;
+        list.querySelectorAll('.cmdk-hit').forEach((el, i) => {
+          el.classList.toggle('active', i === active);
+        });
+        const el = list.querySelectorAll('.cmdk-hit')[active];
+        if (el) el.scrollIntoView({ block: 'nearest' });
+      }
+
+      function handleKey(e) {
+        const isOpen = dlg.open;
+        const mod = e.metaKey || e.ctrlKey;
+        if (mod && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          if (isOpen) dlg.close();
+          else dlg.showModal();
+          return;
+        }
+        if (!isOpen) return;
+        if (e.key === 'Escape') { e.preventDefault(); dlg.close(); }
+        else if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+        else if (e.key === 'Enter') { e.preventDefault(); open(active); }
+      }
+
+      input.addEventListener('input', (e) => {
+        const q = e.target.value.trim();
+        if (!fuse) return;
+        if (!q) { list.innerHTML = ''; empty.style.display = 'none'; meta.textContent = ''; current = []; return; }
+        render(q, fuse.search(q, { limit: 20 }));
+      });
+
+      document.addEventListener('keydown', handleKey);
+      dlg.addEventListener('close', () => { input.value = ''; list.innerHTML = ''; meta.textContent = ''; });
+
+      // Lazy-load the index the first time the dialog opens.
+      let loadingPromise = null;
+      function ensureIndex() {
+        if (fuse) return Promise.resolve();
+        if (loadingPromise) return loadingPromise;
+        loadingPromise = (async () => {
+          try {
+            const res = await fetch(base + '/search-index.json', { cache: 'no-store' });
+            const data = await res.json();
+            fuse = new Fuse(data, {
+              keys: [
+                { name: 'title', weight: 0.5 },
+                { name: 'labels', weight: 0.3 },
+                { name: 'excerpt', weight: 0.2 },
+              ],
+              threshold: 0.4,
+              ignoreLocation: true,
+              minMatchCharLength: 2,
+            });
+          } catch (err) {
+            console.error('cmdk index load failed', err);
+          }
+        })();
+        return loadingPromise;
+      }
+      const originalShow = dlg.show.bind(dlg);
+      dlg.show = function () { ensureIndex(); originalShow(); setTimeout(() => input.focus(), 0); };
+      const originalShowModal = dlg.showModal.bind(dlg);
+      dlg.showModal = function () { ensureIndex(); originalShowModal(); setTimeout(() => input.focus(), 0); };
+      })();
+    </script>
   </body>
 </html>
