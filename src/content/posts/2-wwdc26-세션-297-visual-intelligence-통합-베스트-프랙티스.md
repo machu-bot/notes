@@ -1,9 +1,9 @@
 ---
-title: "[번역] WWDC26 세션 297 — Visual Intelligence 통합 베스트 프랙티스"
+title: "WWDC26 세션 297 — Visual Intelligence 통합 베스트 프랙티스"
 issue: 2
 createdAt: 2026-06-16T06:44:22Z
-updatedAt: 2026-06-16T06:44:22Z
-labels: ["published"]
+updatedAt: 2026-06-16T06:57:50Z
+labels: ["published","translation"]
 ---
 
 > 본문은 **Apple WWDC26 세션 297 "Best practices for integrating visual intelligence in your app"** 을 한국어로 정리한 학습 노트입니다.

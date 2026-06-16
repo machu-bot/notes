@@ -83,6 +83,25 @@ a:hover { border-bottom-color: var(--accent); color: var(--accent); }
 .post-item .title { font-weight: 500; }
 .post-item .meta { display: flex; gap: 16px; align-items: baseline; }
 
+/* Tag chip — clickable, surfaces GitHub labels as content categories. */
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  margin: 0 4px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--font-label);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  line-height: 1.4;
+  transition: border-color 120ms, color 120ms;
+}
+a.tag:hover { border-color: var(--accent); color: var(--accent); }
+
+.tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+
 /* Post body — h1/h2/h3 can mix scripts, so use Pretendard (heading) instead of Doto. */
 .prose h1, .prose h2, .prose h3 {
   font-family: var(--font-heading);

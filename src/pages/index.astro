@@ -6,6 +6,12 @@ const posts = (await getCollection('posts')).sort(
   (a, b) => b.data.createdAt.getTime() - a.data.createdAt.getTime()
 );
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// `published` is an internal build gate, not a content tag. Hide it from the
+// rendered chip row (it's still visible inside the GitHub issue itself).
+const HIDDEN = new Set(['published']);
+const visibleLabels = (post: typeof posts[number]) =>
+  post.data.labels.filter((l) => !HIDDEN.has(l));
 ---
 <Base title="notes">
   <header class="hero">
@@ -17,24 +23,29 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <p class="label">No posts yet — open an issue with the <code>published</code> label.</p>
   ) : (
     <div class="post-list">
-      {posts.map((post) => (
-        <a class="post-item" href={`${base}/posts/${post.id}/`}>
-          <div>
-            <div class="title">{post.data.title}</div>
-            {post.data.labels.length > 0 && (
-              <div class="label" style="margin-top:4px">
-                {post.data.labels.map((l) => `#${l}`).join('  ')}
-              </div>
-            )}
-          </div>
-          <div class="meta">
-            <span class="unit">#{post.data.issue}</span>
-            <time class="label" datetime={post.data.createdAt.toISOString()}>
-              {post.data.createdAt.toISOString().slice(0, 10)}
-            </time>
-          </div>
-        </a>
-      ))}
+      {posts.map((post) => {
+        const tags = visibleLabels(post);
+        return (
+          <article class="post-item">
+            <div style="flex:1;min-width:0">
+              <a href={`${base}/posts/${post.id}/`} class="title">{post.data.title}</a>
+              {tags.length > 0 && (
+                <div class="tag-row">
+                  {tags.map((l) => (
+                    <a class="tag" href={`${base}/tags/${encodeURIComponent(l)}/`}>#{l}</a>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div class="meta">
+              <span class="unit">#{post.data.issue}</span>
+              <time class="label" datetime={post.data.createdAt.toISOString()}>
+                {post.data.createdAt.toISOString().slice(0, 10)}
+              </time>
+            </div>
+          </article>
+        );
+      })}
     </div>
   )}
 </Base>
