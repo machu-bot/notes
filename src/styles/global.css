@@ -1,0 +1,149 @@
+/* Nothing v3 — personal notes blog */
+@import url('https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg: #000000;
+  --surface: #111111;
+  --border: #222222;
+  --text: #E8E8E8;
+  --muted: #888888;
+  --accent: #D71921;
+
+  --font-display: 'Doto', monospace;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
+a:hover { border-bottom-color: var(--accent); color: var(--accent); }
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.unit {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.hero p { color: var(--muted); margin-bottom: 48px; }
+
+/* Post list */
+.post-list { display: flex; flex-direction: column; gap: 0; }
+.post-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+}
+.post-item:last-child { border-bottom: 1px solid var(--border); }
+.post-item .title { font-weight: 500; }
+.post-item .meta { display: flex; gap: 16px; align-items: baseline; }
+
+/* Post body */
+.prose h1, .prose h2, .prose h3 {
+  font-family: var(--font-display);
+  margin: 32px 0 12px;
+  line-height: 1.15;
+}
+.prose h1 { font-size: 36px; }
+.prose h2 { font-size: 24px; }
+.prose h3 { font-size: 18px; }
+.prose p { margin: 12px 0; }
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--surface);
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.prose pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 16px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+.prose pre code { background: none; border: 0; padding: 0; }
+.prose ul, .prose ol { padding-left: 24px; margin: 12px 0; }
+.prose li { margin: 4px 0; }
+.prose blockquote {
+  border-left: 2px solid var(--accent);
+  padding-left: 16px;
+  color: var(--muted);
+  margin: 16px 0;
+}
+
+/* Buttons / pills */
+.pill {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+.pill:hover { border-color: var(--accent); color: var(--accent); }
+
+nav.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+nav.top .brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}

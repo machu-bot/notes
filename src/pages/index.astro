@@ -1,0 +1,40 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+
+const posts = (await getCollection('posts')).sort(
+  (a, b) => b.data.createdAt.getTime() - a.data.createdAt.getTime()
+);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<Base title="notes">
+  <header class="hero">
+    <h1>notes<span style="color:var(--accent)">.</span></h1>
+    <p>Personal learning log. Backed by <a href="https://github.com/machu-bot/notes/issues" target="_blank" rel="noopener">GitHub Issues</a>.</p>
+  </header>
+
+  {posts.length === 0 ? (
+    <p class="label">No posts yet — open an issue with the <code>published</code> label.</p>
+  ) : (
+    <div class="post-list">
+      {posts.map((post) => (
+        <a class="post-item" href={`${base}/posts/${post.id}/`}>
+          <div>
+            <div class="title">{post.data.title}</div>
+            {post.data.labels.length > 0 && (
+              <div class="label" style="margin-top:4px">
+                {post.data.labels.map((l) => `#${l}`).join('  ')}
+              </div>
+            )}
+          </div>
+          <div class="meta">
+            <span class="unit">#{post.data.issue}</span>
+            <time class="label" datetime={post.data.createdAt.toISOString()}>
+              {post.data.createdAt.toISOString().slice(0, 10)}
+            </time>
+          </div>
+        </a>
+      ))}
+    </div>
+  )}
+</Base>
