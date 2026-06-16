@@ -34,22 +34,29 @@ function slugify(text) {
 
 console.log(`▶ Fetching issues with label "${LABEL}" from ${REPO}…`);
 
-// `gh api --paginate` returns concatenated JSON arrays. The `gh` CLI inserts
-// a newline between pages, so each line is a complete JSON array. Join them
-// flat into one big array.
-const raw = execSync(
-  `gh api repos/${REPO}/issues?labels=${encodeURIComponent(LABEL)}&state=all&per_page=100&sort=created&direction=desc --paginate --slurp`,
-  { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }
-).trim();
+// Use gh's -f (field) flags for query parameters to dodge shell `?` glob
+// expansion under /bin/sh on GitHub-hosted runners. Pass labels as the array
+// form so it's serialised as repeated `labels[]=` keys.
+// The Issues list API wants `labels=foo,bar` (a single comma-separated
+// value), not the `labels[]=foo labels[]=bar` array form used by PR/issue
+// creation endpoints. Pass it through `-f` so it's still URL-encoded safely
+// (no `?` to break under /bin/sh on the runner).
+const labelsArg = `-f labels=${(process.env.ISSUE_LABEL || 'published').split(',').join(',')}`;
 
-let issues = [];
-try {
-  issues = JSON.parse(raw);
-} catch (err) {
-  console.error('Failed to parse gh api output. First 500 chars:');
-  console.error(raw.slice(0, 500));
-  throw err;
-}
+// `gh api /path` defaults to POST when no method flag is given, so we have
+// to be explicit. We also avoid `?` in the path because `/bin/sh` (dash) on
+// the GitHub-hosted runner expands it as a glob character.
+const cmd = `gh api -X GET repos/${REPO}/issues ${labelsArg} -f state=all -f per_page=100 -f sort=created -f direction=desc --paginate --slurp`;
+const raw = execSync(cmd, {
+  encoding: 'utf8',
+  maxBuffer: 256 * 1024 * 1024,
+}).trim();
+
+// `gh api ... --paginate --slurp` wraps every page in its own array and
+// concatenates them: `[[p1], [p2], ...]`. Flatten one level to recover the
+// full issue list.
+const pages = JSON.parse(raw);
+const issues = pages.flat();
 
 // /issues returns PRs too — drop them.
 const posts = issues.filter((i) => !i.pull_request);
