@@ -1,0 +1,42 @@
+name: Auto-publish new issues
+
+# When a new issue is opened, automatically apply the `published` label so
+# the site pipeline (Build & Deploy -> fetch-issues.mjs) picks it up on the
+# next build. Without this, the 6h schedule + manual labels left the site
+# stale for hours at a time (the bug we hit on 2026-06-16).
+#
+# Scope: only issues with one of the content-category labels get auto-
+# published. Bare issues (e.g. bug reports) stay unlabelled and never
+# appear on the site.
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  auto-publish:
+    runs-on: ubuntu-latest
+    if: >-
+      contains(github.event.issue.labels.*.name, 'translation') ||
+      contains(github.event.issue.labels.*.name, 'wwdc') ||
+      contains(github.event.issue.labels.*.name, 'wwdc26')
+    steps:
+      - name: Add published label if missing
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.issue.labels.map(l => l.name);
+            if (labels.includes('published')) {
+              core.info('Already has published, nothing to do.');
+              return;
+            }
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              labels: ['published'],
+            });
+            core.info('Added published to issue #' + context.payload.issue.number + '.');
